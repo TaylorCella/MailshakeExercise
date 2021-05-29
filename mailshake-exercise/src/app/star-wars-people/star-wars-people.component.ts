@@ -63,15 +63,14 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
         firstResponse.results.forEach(res => {
           const stringFilms = this.resetFilms(res['films']);
           // const stringPlanets = this.resetPlanets(res['homeworld']);
-          this.test.push({name: res['name'], world: res['homeworld'], dob: res['birth_year'], films: res['films']});
+          this.test.push({name: res['name'], world: res['homeworld'], dob: res['birth_year'], films: stringFilms});
         });
-        // if(firstResponse.next != null) {
-        //   this.getData(firstResponse.next);
-        // }
-        // else {
-        //   this.dataSource.data = this.test;
-        // }
-        this.dataSource.data = this.test;
+        if(firstResponse.next != null) {
+          this.getData(firstResponse.next);
+        }
+        else {
+          this.dataSource.data = this.test;
+        }
       }),
       takeUntil(this.unsubscribe)
     ).subscribe();
@@ -133,10 +132,9 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     films.forEach(film => {
       console.log(film);
       this.allFilms.forEach(stringVersion => {
-        tempFilms.push(stringVersion.title);
-        // if(film.toString().includes((stringVersion.id).toString())){
-        //   tempFilms.push(stringVersion.title);
-        // }
+        if(film.includes((stringVersion.id).toString())){
+          tempFilms.push(stringVersion.title);
+        }
       })
     })
     console.log(tempFilms);
