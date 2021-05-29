@@ -23,7 +23,7 @@
         <!-- Symbol Column -->
         <ng-container matColumnDef="films">
           <th mat-header-cell *matHeaderCellDef mat-sort-header> Films </th>
-          <td mat-cell *matCellDef="let person"> {{person.films}} </td>
+          <td mat-cell *matCellDef="let person"><div *ngFor="let film of person.films">{{film}}</div></td>
         </ng-container>
       
         <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
