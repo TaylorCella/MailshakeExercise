@@ -44,13 +44,14 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   public test: peopleModel[] = [];
   public allFilms: film[] = [];
   public allPlanets: planet[] = [];
-  public filterSelection: Observable<string>;
+  public pageNumber: number;
+  public totalPageNumber: number;
 
   filterForm: FormGroup = this.formBuilder.group({
     filterSelection: '',
     filterValue: '',
   });
-  
+
 
   @ViewChild(MatSort) sort: MatSort;
   @ViewChild(MatPaginator) paginator: MatPaginator;
@@ -61,22 +62,25 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     this.getFilmsAndHomeWorld();
     this.getHomeWorld('https://swapi.dev/api/planets/');
 
-    this.filterForm.get('filterSelection')!.valueChanges
-    .pipe(
-      withLatestFrom(this.filterForm.get('filterValue')!.valueChanges),
-      map(([selection, value]) => {
-          if(selection === 'film'){
-            this.dataSource.data = this.test.filter(row => row.films.filter(film => film.toLowerCase().includes(value)));
-          } else if (selection === 'name') {
-            this.dataSource.data = this.test.filter(row => row.name.toLowerCase().includes(value));
-          } else if (selection === 'world') {
-            this.dataSource.data = this.test.filter(row => row.world.toLowerCase().includes(value));
-          } else {
-            return this.getData('https://swapi.dev/api/people/');
-          }
-        }
-      )
-    ).subscribe();
+    // this.filterForm.get('filterSelection')!.valueChanges
+    // .pipe(
+    //   withLatestFrom(this.filterForm.get('filterValue')!.valueChanges),
+    //   map(([selection, value]) => {
+    //     console.log('here');
+    //       if(selection === 'film'){
+    //         this.dataSource.filter;
+    //         console.log(this.test.filter(row => row.films.filter(film => film.toLowerCase().includes(value))));
+    //       } else if (selection === 'name') {
+    //         console.log(this.test.filter(row => row.name.toLowerCase().includes(value)));
+    //       } else if (selection === 'world') {
+    //         console.log('here 2');
+    //         console.log(this.test.filter(row => row.world.toLowerCase().includes(value)));
+    //       } else {
+    //         return this.getData('https://swapi.dev/api/people/');
+    //       }
+    //     }
+    //   )
+    // ).subscribe();
   }
 
   ngAfterViewInit() {
@@ -84,8 +88,27 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     this.dataSource.paginator = this.paginator;
   }
 
+  filter(value: string) {
+    if (this.filterForm.get('filterSelection').value === null) {
+      return;
+    }
+    // add switch statement 
+    if (value != ' ') {
+      if (this.filterForm.get('filterSelection').value === 'film') {
+        this.dataSource.data = this.test.filter(row => row.films.find(film => film.toLowerCase().includes(value)));
+      } else if (this.filterForm.get('filterSelection').value === 'name') {
+        this.dataSource.data = this.test.filter(row => row.name.toLowerCase().includes(value));
+      } else if (this.filterForm.get('filterSelection').value === 'world') {
+        this.dataSource.data = this.test.filter(row => row.world.toLowerCase().includes(value));
+      }
+      else {
+        return;
+      }
+    }
+  }
+
   loadData() {
-    if(this.test.length > 1){
+    if (this.test.length > 1) {
       this.test = [];
     }
     this.getData('https://swapi.dev/api/people/');
@@ -97,13 +120,14 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
         firstResponse.results.forEach(res => {
           const stringFilms = this.resetFilms(res['films']);
           const stringPlanets = this.resetPlanets(res['homeworld']);
-          this.test.push({name: res['name'], world: stringPlanets, dob: res['birth_year'], films: stringFilms});
+          this.test.push({ name: res['name'], world: stringPlanets, dob: res['birth_year'], films: stringFilms });
         });
-        if(firstResponse.next != null) {
+        if (firstResponse.next != null) {
           this.getData(firstResponse.next);
         }
         else {
           this.dataSource.data = this.test;
+          this.totalPageNumber = Math.ceil(this.test.length / 10);
         }
       }),
       takeUntil(this.unsubscribe)
@@ -115,7 +139,7 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     for (let index = 1; index < 7; index++) {
       this.http.get('https://swapi.dev/api/films/' + index).pipe(
         map(response => {
-          this.allFilms.push({id: index, title: response['title']});
+          this.allFilms.push({ id: index, title: response['title'] });
         }),
         takeUntil(this.unsubscribe)
       ).subscribe();
@@ -124,13 +148,13 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     return this.allFilms;
   }
 
-  getHomeWorld(url?: string){
+  getHomeWorld(url?: string) {
     this.http.get<serverResponse>(url).pipe(
       map(firstResponse => {
         firstResponse.results.forEach(res => {
-          this.allPlanets.push({id: res['url'], planet: res['name']});
+          this.allPlanets.push({ id: res['url'], planet: res['name'] });
         });
-        if(firstResponse.next != null) {
+        if (firstResponse.next != null) {
           this.getHomeWorld(firstResponse.next);
         }
         else {
@@ -145,7 +169,7 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     const tempFilms = [];
     films.forEach(film => {
       this.allFilms.forEach(stringVersion => {
-        if(film.includes((stringVersion.id).toString())){
+        if (film.includes((stringVersion.id).toString())) {
           tempFilms.push(stringVersion.title);
         }
       })
@@ -156,11 +180,20 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   resetPlanets(world?: string): string {
     let worldName = '';
     this.allPlanets.forEach(planet => {
-      if(world === planet.id){
+      if (world === planet.id) {
         worldName = planet.planet;
       }
     });
     return worldName;
+  }
+
+  goToPage(value: number) {
+  this.paginator.pageIndex = value, // number of the page you want to jump.
+    this.paginator.page.next({
+      pageIndex: value,
+      pageSize: this.paginator.pageSize,
+      length: this.paginator.length
+    });
   }
 
   ngOnDestroy(): void {
