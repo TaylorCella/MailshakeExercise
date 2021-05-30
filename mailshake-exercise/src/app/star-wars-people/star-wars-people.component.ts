@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, takeUntil, pluck } from 'rxjs/operators';
+import { map, takeUntil, pluck, withLatestFrom, switchMap } from 'rxjs/operators';
 import { Observable, Subject } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort } from '@angular/material/sort';
 import { connectableObservableDescriptor } from 'rxjs/internal/observable/ConnectableObservable';
+import { MatPaginator } from '@angular/material/paginator';
+import { FormGroup, FormBuilder } from '@angular/forms';
 
 export interface peopleModel {
   name: string;
@@ -42,28 +44,60 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   public test: peopleModel[] = [];
   public allFilms: film[] = [];
   public allPlanets: planet[] = [];
+  public filterSelection: Observable<string>;
+
+  filterForm: FormGroup = this.formBuilder.group({
+    filterSelection: '',
+    filterValue: '',
+  });
+  
 
   @ViewChild(MatSort) sort: MatSort;
+  @ViewChild(MatPaginator) paginator: MatPaginator;
 
-  constructor(private http: HttpClient) { }
+  constructor(private http: HttpClient, private formBuilder: FormBuilder) { }
 
   ngOnInit(): void {
     this.getFilmsAndHomeWorld();
-    //this.getHomeWorld('https://swapi.dev/api/planets/');
-    this.getData('https://swapi.dev/api/people/');
+    this.getHomeWorld('https://swapi.dev/api/planets/');
+
+    this.filterForm.get('filterSelection')!.valueChanges
+    .pipe(
+      withLatestFrom(this.filterForm.get('filterValue')!.valueChanges),
+      map(([selection, value]) => {
+          if(selection === 'film'){
+            this.dataSource.data = this.test.filter(row => row.films.filter(film => film.toLowerCase().includes(value)));
+          } else if (selection === 'name') {
+            this.dataSource.data = this.test.filter(row => row.name.toLowerCase().includes(value));
+          } else if (selection === 'world') {
+            this.dataSource.data = this.test.filter(row => row.world.toLowerCase().includes(value));
+          } else {
+            return this.getData('https://swapi.dev/api/people/');
+          }
+        }
+      )
+    ).subscribe();
   }
 
-  // ngAfterViewInit() {
-  //   this.dataSource.sort = this.sort;
-  // }
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+    this.dataSource.paginator = this.paginator;
+  }
+
+  loadData() {
+    if(this.test.length > 1){
+      this.test = [];
+    }
+    this.getData('https://swapi.dev/api/people/');
+  }
 
   getData(url?: string) {
     this.http.get<serverResponse>(url).pipe(
       map(firstResponse => {
         firstResponse.results.forEach(res => {
           const stringFilms = this.resetFilms(res['films']);
-          // const stringPlanets = this.resetPlanets(res['homeworld']);
-          this.test.push({name: res['name'], world: res['homeworld'], dob: res['birth_year'], films: stringFilms});
+          const stringPlanets = this.resetPlanets(res['homeworld']);
+          this.test.push({name: res['name'], world: stringPlanets, dob: res['birth_year'], films: stringFilms});
         });
         if(firstResponse.next != null) {
           this.getData(firstResponse.next);
@@ -88,68 +122,46 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     }
     console.log(this.allFilms);
     return this.allFilms;
-
-    // films.forEach(film => {
-    //   this.http.get(film).pipe(
-    //     map(response => {
-    //       tempFilms.push(response['title']);
-    //     }),
-    //     takeUntil(this.unsubscribe)
-    //   ).subscribe();
-    // })
   }
 
-  // getHomeWorld(url?: string){
-  //   this.http.get<serverResponse>(url).pipe(
-  //     map(firstResponse => {
-  //       firstResponse.results.forEach(res => {
-  //         this.allPlanets.push({id: res['url'], planet: res['homeworld']});
-  //       });
-  //       if(firstResponse.next != null) {
-  //         this.getHomeWorld(firstResponse.next);
-  //       }
-  //       else {
-  //         return this.allPlanets;
-  //       }
-  //     }),
-  //     takeUntil(this.unsubscribe)
-  //   ).subscribe();
-  // }
+  getHomeWorld(url?: string){
+    this.http.get<serverResponse>(url).pipe(
+      map(firstResponse => {
+        firstResponse.results.forEach(res => {
+          this.allPlanets.push({id: res['url'], planet: res['name']});
+        });
+        if(firstResponse.next != null) {
+          this.getHomeWorld(firstResponse.next);
+        }
+        else {
+          return this.getData('https://swapi.dev/api/people/');
+        }
+      }),
+      takeUntil(this.unsubscribe)
+    ).subscribe();
+  }
 
   resetFilms(films?: string[]) {
     const tempFilms = [];
-    // films.forEach(film => {
-    //   console.log('into response loop');
-    //   console.log(this.allFilms);
-    //   this.allFilms.forEach(title => {
-    //     console.log('into all films loop');
-    //     if(film.includes((title.id).toString())){
-    //       console.log('match found');
-    //       tempFilms.push(title.title);
-    //     }
-    //   })
-    // });
     films.forEach(film => {
-      console.log(film);
       this.allFilms.forEach(stringVersion => {
         if(film.includes((stringVersion.id).toString())){
           tempFilms.push(stringVersion.title);
         }
       })
     })
-    console.log(tempFilms);
     return tempFilms;
   }
 
-  // resetPlanets(world?: string): string {
-  //   let worldName = '';
-  //   this.allPlanets.forEach(planet => {
-  //     if(world === planet.id){
-  //       worldName = planet.planet;
-  //     }
-  //   });
-  //   return worldName;
-  // }
+  resetPlanets(world?: string): string {
+    let worldName = '';
+    this.allPlanets.forEach(planet => {
+      if(world === planet.id){
+        worldName = planet.planet;
+      }
+    });
+    return worldName;
+  }
 
   ngOnDestroy(): void {
     this.unsubscribe.next();
