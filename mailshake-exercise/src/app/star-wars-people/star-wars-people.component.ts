@@ -53,8 +53,8 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   });
 
 
-  @ViewChild(MatSort) sort: MatSort;
-  @ViewChild(MatPaginator) paginator: MatPaginator;
+  @ViewChild(MatSort, { static: true }) sort: MatSort;
+  @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
 
   constructor(private http: HttpClient, private formBuilder: FormBuilder) { }
 
@@ -62,28 +62,10 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     this.getFilmsAndHomeWorld();
     this.getHomeWorld('https://swapi.dev/api/planets/');
 
-    // this.filterForm.get('filterSelection')!.valueChanges
-    // .pipe(
-    //   withLatestFrom(this.filterForm.get('filterValue')!.valueChanges),
-    //   map(([selection, value]) => {
-    //     console.log('here');
-    //       if(selection === 'film'){
-    //         this.dataSource.filter;
-    //         console.log(this.test.filter(row => row.films.filter(film => film.toLowerCase().includes(value))));
-    //       } else if (selection === 'name') {
-    //         console.log(this.test.filter(row => row.name.toLowerCase().includes(value)));
-    //       } else if (selection === 'world') {
-    //         console.log('here 2');
-    //         console.log(this.test.filter(row => row.world.toLowerCase().includes(value)));
-    //       } else {
-    //         return this.getData('https://swapi.dev/api/people/');
-    //       }
-    //     }
-    //   )
-    // ).subscribe();
   }
 
   ngAfterViewInit() {
+    this.sort.start = "asc"
     this.dataSource.sort = this.sort;
     this.dataSource.paginator = this.paginator;
   }
@@ -115,6 +97,7 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   }
 
   getData(url?: string) {
+    // todo: replace http with https 
     this.http.get<serverResponse>(url).pipe(
       map(firstResponse => {
         firstResponse.results.forEach(res => {
@@ -188,7 +171,7 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   }
 
   goToPage(value: number) {
-  this.paginator.pageIndex = value, // number of the page you want to jump.
+  this.paginator.pageIndex = value - 1, // number of the page you want to jump.
     this.paginator.page.next({
       pageIndex: value,
       pageSize: this.paginator.pageSize,
