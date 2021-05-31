@@ -1,58 +1,33 @@
-import { Component, OnInit, OnDestroy, ViewChild } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChild, AfterViewInit } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { map, takeUntil, pluck, withLatestFrom, switchMap } from 'rxjs/operators';
-import { Observable, Subject } from 'rxjs';
+import { map, takeUntil } from 'rxjs/operators';
+import { Subject } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort, Sort } from '@angular/material/sort';
-import { connectableObservableDescriptor } from 'rxjs/internal/observable/ConnectableObservable';
+import { MatSort } from '@angular/material/sort';
 import { MatPaginator } from '@angular/material/paginator';
-import { FormGroup, FormBuilder } from '@angular/forms';
-
-export interface peopleModel {
-  name: string;
-  world: string;
-  dob: string;
-  films: string[];
-}
-
-export interface serverResponse {
-  count: number;
-  next: string;
-  previous?: string;
-  results: [{}];
-}
-
-export interface film {
-  id: number;
-  title: string;
-}
-
-export interface planet {
-  id: string;
-  planet: string;
-}
+import { FormGroup, FormBuilder, FormControl } from '@angular/forms';
+import { PeopleModel, Film, Planet, ServerResponse } from '../models/star-wars-models';
 
 @Component({
   selector: 'app-star-wars-people',
   templateUrl: './star-wars-people.component.html',
   styleUrls: ['./star-wars-people.component.scss']
 })
-export class StarWarsPeopleComponent implements OnInit, OnDestroy {
+export class StarWarsPeopleComponent implements OnInit, OnDestroy, AfterViewInit {
   public dataSource = new MatTableDataSource();
-  private unsubscribe: Subject<void> = new Subject();
-  displayedColumns: string[] = ['name', 'world', 'year', 'films'];
-  public test: peopleModel[] = [];
-  public allFilms: film[] = [];
-  public allPlanets: planet[] = [];
-  public pageNumber: number;
-  public totalPageNumber: number;
+  public displayedColumns: string[] = ['name', 'world', 'year', 'films'];
+
+  public rowData: PeopleModel[] = [];
+  private allFilms: Film[] = [];
+  private allPlanets: Planet[] = [];
+
   public isLoading = true;
+  private unsubscribe: Subject<void> = new Subject();
 
   filterForm: FormGroup = this.formBuilder.group({
     filterSelection: '',
     filterValue: '',
   });
-
 
   @ViewChild(MatSort, { static: true }) sort: MatSort;
   @ViewChild(MatPaginator, { static: true }) paginator: MatPaginator;
@@ -60,112 +35,114 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   constructor(private http: HttpClient, private formBuilder: FormBuilder) { }
 
   ngOnInit(): void {
-    this.getFilmsAndHomeWorld();
-    this.getHomeWorld('https://swapi.dev/api/planets/');
-
+    // Get films & worlds from API in the correct format to prevent a race condition
+    this.getFilms();
+    this.getWorlds('https://swapi.dev/api/planets/');
   }
 
   ngAfterViewInit() {
+    // Setup material sorting and pagination
     this.dataSource.sort = this.sort;
     this.dataSource.sortingDataAccessor = (data, header) => data[header];
     this.dataSource.paginator = this.paginator;
-
   }
 
-  filter(value: string) {
-    if (this.filterForm.get('filterSelection').value === null) {
-      return;
-    }
-    // add switch statement 
-    if (value != ' ') {
-      if (this.filterForm.get('filterSelection').value === 'film') {
-        this.dataSource.data = this.test.filter(row => row.films.find(film => film.toLowerCase().includes(value)));
-      } else if (this.filterForm.get('filterSelection').value === 'name') {
-        this.dataSource.data = this.test.filter(row => row.name.toLowerCase().includes(value));
-      } else if (this.filterForm.get('filterSelection').value === 'world') {
-        this.dataSource.data = this.test.filter(row => row.world.toLowerCase().includes(value));
-      }
-      else {
-        return;
-      }
-    }
-  }
-
-  loadData() {
-    if (this.test.length > 1) {
-      this.test = [];
-    }
-    this.getData('https://swapi.dev/api/people/');
-  }
-
-  getData(url?: string) {
-    // todo: replace http with https 
-    this.http.get<serverResponse>(url).pipe(
-      map(firstResponse => {
-        firstResponse.results.forEach(res => {
-          const stringFilms = this.resetFilms(res['films']);
-          const stringPlanets = this.resetPlanets(res['homeworld']);
-          this.test.push({ name: res['name'], world: stringPlanets, dob: res['birth_year'], films: stringFilms });
-        });
-        if (firstResponse.next != null) {
-          this.getData(firstResponse.next);
-        }
-        else {
-          this.dataSource.data = this.test;
-          this.totalPageNumber = Math.ceil(this.test.length / 10);
-          this.isLoading = false;
-        }
-      }),
-      takeUntil(this.unsubscribe)
-    ).subscribe();
-    //this.dataSource.data = this.test;
-  }
-
-  getFilmsAndHomeWorld() {
+  getFilms() {
+    // For each film, send a request to the API
     for (let index = 1; index < 7; index++) {
       this.http.get('https://swapi.dev/api/films/' + index).pipe(
         map(response => {
-          this.allFilms.push({ id: index, title: response['title'] });
+          // Save the page number and the title for joining together with people array
+          this.allFilms.push({ id: index, title: response[`title`] });
+        },
+        error => {
+          console.log('Error loading films: ' + error);
         }),
         takeUntil(this.unsubscribe)
       ).subscribe();
     }
-    console.log(this.allFilms);
     return this.allFilms;
   }
 
-  getHomeWorld(url?: string) {
-    this.http.get<serverResponse>(url).pipe(
+  getWorlds(url?: string) {
+    // This is a recursive method that uses responses from the API that use http instead of https
+    // Clean that up to prevent duplicate calls
+    let httpsUrl = url;
+    if (url.includes('http:')) {
+      httpsUrl = url.replace('http:', 'https:');
+    }
+    this.http.get<ServerResponse>(httpsUrl).pipe(
       map(firstResponse => {
         firstResponse.results.forEach(res => {
-          this.allPlanets.push({ id: res['url'], planet: res['name'] });
+          // Grab only what we need - the url for joining with people and the planet name
+          this.allPlanets.push({ id: res[`url`], planet: res[`name`] });
         });
         if (firstResponse.next != null) {
-          this.getHomeWorld(firstResponse.next);
+          // If there's more pages, run the method again to make sure we get all planets
+          this.getWorlds(firstResponse.next);
         }
         else {
+          // If there are no more pages, we're ready to grab our people and link it all together
           return this.getData('https://swapi.dev/api/people/');
         }
+      },
+      error => {
+        console.log('Error loading worlds: ' + error);
       }),
       takeUntil(this.unsubscribe)
     ).subscribe();
   }
 
-  resetFilms(films?: string[]) {
+  getData(url: string) {
+    // Ensure we're only sending https requests, not http
+    let httpsUrl = url;
+    if (url.includes('http:')) {
+      httpsUrl = url.replace('http:', 'https:');
+    }
+    this.http.get<ServerResponse>(httpsUrl).pipe(
+      map(firstResponse => {
+        firstResponse.results.forEach(res => {
+          // Response from API for films/worlds is a URL
+          // Convert that to a string by using our existing planets / films arrays
+          const stringFilms = this.convertFilms(res[`films`]);
+          const stringPlanets = this.convertPlanets(res[`homeworld`]);
+          // Push each new person into our rowData people array
+          this.rowData.push({ name: res[`name`], world: stringPlanets, dob: res[`birth_year`], films: stringFilms });
+        });
+        if (firstResponse.next != null) {
+          // Call this method again with the next URL if it exists
+          this.getData(firstResponse.next);
+        }
+        else {
+          // If we're out of people, we'll set our datasource to our rowData and set the loading spinner to false
+          this.dataSource.data = this.rowData;
+          this.isLoading = false;
+        }
+      },
+      error => {
+        console.log('Error loading people: ' + error);
+      }),
+      takeUntil(this.unsubscribe)
+    ).subscribe();
+  }
+
+  convertFilms(films?: string[]) {
     const tempFilms = [];
     films.forEach(film => {
       this.allFilms.forEach(stringVersion => {
+        // if the array of film URLs includes the id, push the title only to a new array and return
         if (film.includes((stringVersion.id).toString())) {
           tempFilms.push(stringVersion.title);
         }
-      })
-    })
+      });
+    });
     return tempFilms;
   }
 
-  resetPlanets(world?: string): string {
+  convertPlanets(world?: string): string {
     let worldName = '';
     this.allPlanets.forEach(planet => {
+      // if the world URL matches the planet id, return the actual planet name
       if (world === planet.id) {
         worldName = planet.planet;
       }
@@ -173,16 +150,44 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
     return worldName;
   }
 
-  goToPage(value: number) {
-  this.paginator.pageIndex = value - 1, // number of the page you want to jump.
-    this.paginator.page.next({
-      pageIndex: value,
-      pageSize: this.paginator.pageSize,
-      length: this.paginator.length
-    });
+  filter(value: string) {
+    // Only want to filter if a selection has been made
+    if (this.filterForm.get('filterSelection').value === null) {
+      return;
+    }
+    
+    const formattedValue = value.toLowerCase().trim();
+
+    // only filter if the input isn't blank
+    if (formattedValue !== ' ') {
+      switch (this.filterForm.get('filterSelection').value) {
+        case 'film':
+          this.dataSource.data = this.rowData.filter(row => row.films.find(film => film.toLowerCase().includes(formattedValue)));
+          break;
+        case 'name':
+          this.dataSource.data = this.rowData.filter(row => row.name.toLowerCase().includes(formattedValue));
+          break;
+        case 'world':
+          this.dataSource.data = this.rowData.filter(row => row.world.toLowerCase().includes(formattedValue));
+          break;
+        default:
+          break;
+      }
+    }
+  }
+
+
+  loadData() {
+    this.isLoading = true;
+    // if the data has already been loaded, clear it out so we can start again without duplicates
+    if (this.rowData.length > 1) {
+      this.rowData = [];
+    }
+    this.getData('https://swapi.dev/api/people/');
   }
 
   ngOnDestroy(): void {
+    // cut off subscriptions on destroy to prevent memory leaks
     this.unsubscribe.next();
     this.unsubscribe.complete();
   }

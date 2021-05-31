@@ -29,17 +29,13 @@ export class StylePaginatorDirective implements AfterViewInit, DoCheck {
     this.ren.listen(input, 'keyup.enter', event => {
       this.ren.setValue(input, event.target.value);
       this.switchPage(event.target.value);
-    })
-    
+    });
+
     return input;
   }
 
   private initPageRange(): void {
     const pagingContainerMain = this.vr.element.nativeElement.querySelector('.mat-paginator-range-actions');
-    // const peopleCount = this.ren.createElement('span');
-    // const peopleText = this.ren.createText(this.matPag.length + 'people');
-    // this.ren.appendChild(peopleCount, peopleText);
-    // this.ren.insertBefore(pagingContainerMain, peopleCount, this.vr.element.nativeElement.childNodes[0].childNodes[0].childNodes[1].childNodes[0]);
 
     if (
       this.vr.element.nativeElement.querySelector('div.mat-paginator-range-actions div.btn_custom-paging-container')
@@ -64,10 +60,10 @@ export class StylePaginatorDirective implements AfterViewInit, DoCheck {
 
     this.ren.insertBefore(pageRange, this.createPage(), null);
     const pageCount = this.pageCount(this.matPag.length, this.matPag.pageSize);
-    
+
     const span = this.ren.createElement('span');
-    const text = this.ren.createText(' of '+ pageCount);
-    
+    const text = this.ren.createText(' of ' + pageCount);
+
     this.ren.appendChild(span, text);
     this.ren.insertBefore(pageRange, span, null);
   }

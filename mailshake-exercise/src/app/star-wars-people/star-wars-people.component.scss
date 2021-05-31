@@ -1,9 +1,21 @@
+.container {
+    padding: 15px;
+}
+
+mat-form-field {
+    padding: 10px;
+}
+
 table {
     width: 100%;
 }
 
-.container {
-    padding: 15px
+button {
+    margin-bottom: 10px;
+}
+
+::ng-deep .mat-form-field-appearance-outline .mat-form-field-infix {
+    padding: 5px;
 }
 
 ::ng-deep .mat-sort-header-container:not(.mat-sort-header-sorted) .mat-sort-header-arrow {
@@ -11,15 +23,11 @@ table {
     transform: translateY(0px) !important;
 }
 
-mat-form-field {
-    padding: 10px;
+.mat-row:nth-child(even) {
+    background-color: #e8e8e8;
 }
 
-.mat-row:nth-child(even){
-    background-color: #E8E8E8;
-}
-        
-.mat-row:nth-child(odd){
+.mat-row:nth-child(odd) {
     background-color: white;
 }
 
@@ -31,23 +39,18 @@ td {
     border: 1px solid lightgrey;
 }
 
-::ng-deep th.mat-header-cell, td.mat-cell, td.mat-footer-cell {
+::ng-deep th.mat-header-cell,
+td.mat-cell,
+td.mat-footer-cell {
     padding: 5px;
 }
 
 .spinner-container {
-    display: flex; 
-    justify-content: center; 
-    align-items: center; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
     background-color: #fafafa;
     padding: 10px;
-    box-shadow:0 5px 5px -3px rgba(0,0,0,.2), 0 8px 10px 1px rgba(0,0,0,.14), 0 3px 14px 2px rgba(0,0,0,.12);
-  }
-
-  button {
-    margin-bottom: 10px;
-  }
-
-  ::ng-deep .mat-form-field-appearance-outline .mat-form-field-infix {
-      padding: 5px;
-  }
+    box-shadow: 0 5px 5px -3px rgba(0, 0, 0, 0.2), 0 8px 10px 1px rgba(0, 0, 0, 0.14),
+        0 3px 14px 2px rgba(0, 0, 0, 0.12);
+}
