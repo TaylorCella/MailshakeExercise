@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { map, takeUntil, pluck, withLatestFrom, switchMap } from 'rxjs/operators';
 import { Observable, Subject } from 'rxjs';
 import { MatTableDataSource } from '@angular/material/table';
-import { MatSort } from '@angular/material/sort';
+import { MatSort, Sort } from '@angular/material/sort';
 import { connectableObservableDescriptor } from 'rxjs/internal/observable/ConnectableObservable';
 import { MatPaginator } from '@angular/material/paginator';
 import { FormGroup, FormBuilder } from '@angular/forms';
@@ -40,12 +40,13 @@ export interface planet {
 export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   public dataSource = new MatTableDataSource();
   private unsubscribe: Subject<void> = new Subject();
-  displayedColumns: string[] = ['name', 'homeWorld', 'birthYear', 'films'];
+  displayedColumns: string[] = ['name', 'world', 'year', 'films'];
   public test: peopleModel[] = [];
   public allFilms: film[] = [];
   public allPlanets: planet[] = [];
   public pageNumber: number;
   public totalPageNumber: number;
+  public isLoading = true;
 
   filterForm: FormGroup = this.formBuilder.group({
     filterSelection: '',
@@ -65,9 +66,10 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.sort.start = "asc"
     this.dataSource.sort = this.sort;
+    this.dataSource.sortingDataAccessor = (data, header) => data[header];
     this.dataSource.paginator = this.paginator;
+
   }
 
   filter(value: string) {
@@ -111,6 +113,7 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy {
         else {
           this.dataSource.data = this.test;
           this.totalPageNumber = Math.ceil(this.test.length / 10);
+          this.isLoading = false;
         }
       }),
       takeUntil(this.unsubscribe)

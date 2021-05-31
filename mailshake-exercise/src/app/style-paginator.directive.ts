@@ -36,6 +36,10 @@ export class StylePaginatorDirective implements AfterViewInit, DoCheck {
 
   private initPageRange(): void {
     const pagingContainerMain = this.vr.element.nativeElement.querySelector('.mat-paginator-range-actions');
+    // const peopleCount = this.ren.createElement('span');
+    // const peopleText = this.ren.createText(this.matPag.length + 'people');
+    // this.ren.appendChild(peopleCount, peopleText);
+    // this.ren.insertBefore(pagingContainerMain, peopleCount, this.vr.element.nativeElement.childNodes[0].childNodes[0].childNodes[1].childNodes[0]);
 
     if (
       this.vr.element.nativeElement.querySelector('div.mat-paginator-range-actions div.btn_custom-paging-container')
@@ -47,7 +51,8 @@ export class StylePaginatorDirective implements AfterViewInit, DoCheck {
     }
 
     const pagingContainerBtns = this.ren.createElement('div');
-    const refNode = this.vr.element.nativeElement.childNodes[0].childNodes[0].childNodes[2].childNodes[5];
+    const refNode = this.vr.element.nativeElement.childNodes[0].childNodes[0].childNodes[1].childNodes[5];
+
     this.ren.addClass(pagingContainerBtns, 'btn_custom-paging-container');
     this.ren.insertBefore(pagingContainerMain, pagingContainerBtns, refNode);
 
