@@ -1,16 +1,17 @@
 <div class="container">
     <h1>Star Wars People</h1>
     <button mat-raised-button color="primary" (click)="loadData()">Load People</button>
+    <br>
     <form [formGroup]="filterForm">
         <span>Find by</span>
-        <mat-form-field>
+        <mat-form-field appearance="outline">
             <mat-select formControlName="filterSelection">
                 <mat-option value="name">Name</mat-option>
                 <mat-option value="world">Home World</mat-option>
                 <mat-option value="film">Film</mat-option>
             </mat-select>
         </mat-form-field>
-        <mat-form-field class="full-width">
+        <mat-form-field appearance="outline">
             <input type="text"
                    placeholder="Enter Filter Value"
                    aria-label="Filter Input"
