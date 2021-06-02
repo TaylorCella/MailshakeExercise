@@ -43,7 +43,6 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy, AfterViewInit
   ngAfterViewInit() {
     // Setup material sorting and pagination
     this.dataSource.sort = this.sort;
-    this.dataSource.sortingDataAccessor = (data, header) => data[header];
     this.dataSource.paginator = this.paginator;
   }
 
@@ -107,7 +106,7 @@ export class StarWarsPeopleComponent implements OnInit, OnDestroy, AfterViewInit
           const stringFilms = this.convertFilms(res[`films`]);
           const stringPlanets = this.convertPlanets(res[`homeworld`]);
           // Push each new person into our rowData people array
-          this.rowData.push({ name: res[`name`], world: stringPlanets, dob: res[`birth_year`], films: stringFilms });
+          this.rowData.push({ name: res[`name`], world: stringPlanets, year: res[`birth_year`], films: stringFilms });
         });
         if (firstResponse.next != null) {
           // Call this method again with the next URL if it exists

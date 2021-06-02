@@ -1,7 +1,7 @@
 export interface PeopleModel {
     name: string;
     world: string;
-    dob: string;
+    year: string;
     films: string[];
 }
 

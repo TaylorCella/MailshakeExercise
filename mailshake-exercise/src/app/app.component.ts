@@ -13,4 +13,3 @@ export class AppComponent {
 // 1. Create more robust unit tests for star-wars-people and style-paginator
 // 2. Modify paginator directive to replace / modify paginator range label 
 // 3. Style page number input to match more mat-form-field more closely 
-// 4. Resolve birth year sorting issues 
